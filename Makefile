@@ -9,13 +9,23 @@ CFLAGS += -Wundef
 CFLAGS += -Werror=implicit-function-declaration
 CFLAGS += -Werror=strict-prototypes
 
+all: bpseek bpgen test
+
 bpseek: main.o pattern.o hex.o
+	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+
+bpgen: bpgen.o generator.o
 	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 test: test.o pattern.o
 	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
+tests: test bpseek bpgen
+	@./test
+	@./bpgen test.data
+	@./bpseek -x 128 -X 128 test.data
+
 clean:
-	rm -f bpseek test main.o hex.o test.o pattern.o
+	rm -f bpseek bpgen test test.data *.o
 
 .PHONY: clean
