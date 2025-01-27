@@ -2,11 +2,12 @@
 #include "bitops.h"
 #include "common.h"
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
+#include <assert.h>
 #if defined(__APPLE__)
 #include <sys/sysctl.h>
 #endif
-#include <string.h>
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -89,23 +90,35 @@ static double ratio_for_pattern_with_size(const void *data,
 }
 
 struct pattern *find_pattern(const void *data, size_t data_size,
-                             size_t min_size, size_t max_size, size_t size_step)
+                             size_t size_min, size_t size_max, size_t size_step,
+                             off_t off_min, off_t off_max, off_t off_step)
 {
-    double min_ratio = 1.0;
-    struct pattern *pattern = new_pattern(max_size);
+    assert(off_max < data_size);
+    assert(off_step >= 0);
 
-    for (size_t size = min_size; size <= max_size; size += size_step) {
-        double ratio = ratio_for_pattern_with_size(data, data_size, size,
-                                                   pattern->mask, pattern->xor_buf);
-        // printf("ratio(%zu): %f\n", size, ratio);
-        if (ratio < min_ratio) {
-            min_ratio = ratio;
-            pattern->len = size;
+    double min_ratio = 1.0;
+    struct pattern *pattern = new_pattern(size_max);
+
+    for (off_t off = off_min; off <= off_max; off += off_step) {
+        for (size_t size = size_min; size <= size_max; size += size_step) {
+            double ratio = ratio_for_pattern_with_size(data + off,
+                                                       data_size - off,
+                                                       size,
+                                                       pattern->mask,
+                                                       pattern->xor_buf);
+            // printf("ratio(%zu, %zu): %f\n", (size_t)off, size, ratio);
+            if (ratio < min_ratio) {
+                min_ratio = ratio;
+                pattern->off = off;
+                pattern->len = size;
+            }
         }
     }
 
     /* recalculate mask for the best match */
-    ratio_for_pattern_with_size(data, data_size, pattern->len,
+    ratio_for_pattern_with_size(data + pattern->off,
+                                data_size - pattern->off,
+                                pattern->len,
                                 pattern->mask, pattern->xor_buf);
 
     return pattern;

@@ -31,7 +31,7 @@ enum ByteCategory {
 
 static const char ascii_octet[] = {
     '0', '1', '2', '3', '4', '5', '6', '7',
-    '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+    '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
 };
 
 static enum ByteCategory byte_category(unsigned char byte)
@@ -178,18 +178,18 @@ void set_empty_byte(unsigned char byte)
     empty_byte = byte;
 }
 
-void print_hex(const unsigned char *buf, size_t len)
+void print_hex(const unsigned char *buf, size_t len, size_t addr)
 {
-    print_hex_with_mask(buf, NULL, len);
+    print_hex_with_mask(buf, NULL, len, addr);
 }
 
 void print_hex_with_mask(const unsigned char *buf,
                          const unsigned char *mask,
-                         size_t len)
+                         size_t len, size_t addr)
 {
     /* TODO: print header and footer */
     for (size_t off = 0; off < len; off += bytes_per_line) {
         size_t bytes = len - off >= bytes_per_line ? bytes_per_line : len - off;
-        print_hex_line_with_mask(buf + off, mask + off, off, bytes);
+        print_hex_line_with_mask(buf + off, mask + off, addr + off, bytes);
     }
 }

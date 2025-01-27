@@ -26,9 +26,12 @@ static void usage(void)
         "  FILE                          Path to the file to search patterns in\n"
         "\n"
         "Options:\n"
-        "  --min-size MIN, -m MIN        min size of pattern to search (default: 4)\n"
-        "  --max-size MAX, -x MAX        max size of pattern to search (default: 4096)\n"
+        "  --size-min MIN, -m MIN        min size of pattern to search (default: 4)\n"
+        "  --size-max MAX, -x MAX        max size of pattern to search (default: 4096)\n"
         "  --size-step STEP, -s STEP     step between patterns to search (default: 4)\n"
+        "  --offset-min MIN, -M MIN      min offset to search from (default: 0)\n"
+        "  --offset-max MAX, -X MAX      max offset to search from (default: 4096)\n"
+        "  --offset-step STEP, -S STEP   step between offsets (default: 4)\n"
         "  --color COLOR                 auto, always, never (default: auto)\n"
         "  --ff, -f                      treat 0xff as \"empty\" data instead of 0x00\n"
         "  --help, -h                    show help\n"
@@ -36,13 +39,16 @@ static void usage(void)
 }
 
 static struct option longopts[] = {
-    { "min-size",   required_argument,  NULL,  'm' },
-    { "max-size",   required_argument,  NULL,  'x' },
-    { "size-step",  required_argument,  NULL,  's' },
-    { "color",      required_argument,  NULL,  'c' },
-    { "ff",         no_argument,        NULL,  'f' },
-    { "help",       no_argument,        NULL,  'h' },
-    { NULL,         0,                  NULL,  0   }
+    { "size-min",       required_argument,  NULL,  'm' },
+    { "size-max",       required_argument,  NULL,  'x' },
+    { "size-step",      required_argument,  NULL,  's' },
+    { "offset-min",     required_argument,  NULL,  'M' },
+    { "offset-max",     required_argument,  NULL,  'X' },
+    { "offset-step",    required_argument,  NULL,  'S' },
+    { "color",          required_argument,  NULL,  'c' },
+    { "ff",             no_argument,        NULL,  'f' },
+    { "help",           no_argument,        NULL,  'h' },
+    { NULL,             0,                  NULL,  0   }
 };
 
 int main(int argc, char *argv[])
@@ -50,15 +56,18 @@ int main(int argc, char *argv[])
     int c, fd;
     char *p;
     unsigned long val;
-    size_t min_size = 4;
-    size_t max_size = 4096;
+    size_t size_min = 4;
+    size_t size_max = 4096;
     size_t size_step = 4;
+    size_t off_min = 0;
+    size_t off_max = 4096;
+    size_t off_step = 4;
     void *data;
     struct stat st;
     struct pattern *pattern;
 
     while (1) {
-        c = getopt_long(argc, argv, "m:x:s:c:fh", longopts, NULL);
+        c = getopt_long(argc, argv, "m:x:s:M:X:S:c:fh", longopts, NULL);
 
         if (c == -1)
             break;
@@ -67,18 +76,18 @@ int main(int argc, char *argv[])
         case 'm':
             val = strtoul(optarg, &p, 0);
             if (*optarg == '\0' || *p != '\0') {
-                fprintf(stderr, "Invalid value for --min-size/-m option\n");
+                fprintf(stderr, "Invalid value for --size-min/-m option\n");
                 exit(1);
             }
-            min_size = val;
+            size_min = val;
             break;
         case 'x':
             val = strtoul(optarg, &p, 0);
             if (*optarg == '\0' || *p != '\0') {
-                fprintf(stderr, "Invalid value for --max-size/-x option\n");
+                fprintf(stderr, "Invalid value for --size-max/-x option\n");
                 exit(1);
             }
-            max_size = val;
+            size_max = val;
             break;
         case 's':
             val = strtoul(optarg, &p, 0);
@@ -87,6 +96,34 @@ int main(int argc, char *argv[])
                 exit(1);
             }
             size_step = val;
+            break;
+        case 'M':
+            val = strtoul(optarg, &p, 0);
+            if (*optarg == '\0' || *p != '\0') {
+                fprintf(stderr, "Invalid value for --offset-min/-M option\n");
+                exit(1);
+            }
+            off_min = val;
+            break;
+        case 'X':
+            val = strtoul(optarg, &p, 0);
+            if (*optarg == '\0' || *p != '\0') {
+                fprintf(stderr, "Invalid value for --offset-max/-X option\n");
+                exit(1);
+            }
+            off_max = val;
+            break;
+        case 'S':
+            val = strtoul(optarg, &p, 0);
+            if (*optarg == '\0' || *p != '\0') {
+                fprintf(stderr, "Invalid value for --offset-step/-S option\n");
+                exit(1);
+            }
+            if (val <= 0) {
+                fprintf(stderr, "Error: --offset-step/-S must be at least 1\n");
+                exit(1);
+            }
+            off_step = val;
             break;
         case 'c':
             if (!strcmp(optarg, "never")) {
@@ -131,7 +168,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    if (max_size > st.st_size / 2) {
+    if (size_max > st.st_size / 2) {
         fprintf(stderr, "Max pattern size to search is bigger than half of the file. "
                 "Please set it to something meaningful, e.g. %lu.\n",
                 (unsigned long)(st.st_size / 2));
@@ -156,12 +193,19 @@ int main(int argc, char *argv[])
         break;
     }
 
-    pattern = find_pattern(data, st.st_size, min_size, max_size, size_step);
+    pattern = find_pattern(data, st.st_size,
+                           size_min, size_max, size_step,
+                           off_min, off_max, off_step);
     if (!pattern) {
         perror("Something horrible happened");
         exit(1);
     }
 
+    print_hex_with_mask(data + pattern->off,
+                        pattern->mask,
+                        pattern->len, pattern->off);
+
     printf("pattern length: %zu\n", pattern->len);
-    print_hex_with_mask(data, pattern->mask, pattern->len);
+
+    return 0;
 }

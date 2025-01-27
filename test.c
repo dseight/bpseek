@@ -15,7 +15,7 @@ static void test_32bit_clean_pattern(void)
         0x12345678, 0x12345678, 0x12345678, 0x12345678,
     };
 
-    struct pattern *pattern = find_pattern(buf, sizeof(buf), 1, 8, 1);
+    struct pattern *pattern = find_pattern(buf, sizeof(buf), 1, 8, 1, 0, 0, 1);
     assert(pattern->len == 4);
 }
 
@@ -26,7 +26,7 @@ static void test_32bit_varying_pattern(void)
         0x12343678, 0x12341678, 0x12347678, 0x12340678,
     };
 
-    struct pattern *pattern = find_pattern(buf, sizeof(buf), 1, 8, 1);
+    struct pattern *pattern = find_pattern(buf, sizeof(buf), 1, 8, 1, 0, 0, 1);
     assert(pattern->len == 4);
 }
 
