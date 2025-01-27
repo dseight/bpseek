@@ -1,7 +1,8 @@
-CFLAGS ?= -O2 -Werror
+CFLAGS ?= -O3 -flto -Werror
+LDFLAGS ?= -flto
 
-# CFLAGS += -fsanitize=address -fno-omit-frame-pointer
-# LDFLAGS += -fsanitize=address
+# CFLAGS = -g -O0 -fsanitize=address -fno-omit-frame-pointer
+# LDFLAGS = -fsanitize=address -fno-omit-frame-pointer
 
 CFLAGS += -Wall
 CFLAGS += -Wundef
