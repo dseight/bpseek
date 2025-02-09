@@ -2,6 +2,12 @@
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*x))
 
+#define rounddown(x, y)                             \
+    ({                                              \
+        typeof(x) _x = (x);                         \
+        _x - (_x % (y));                            \
+    })
+
 #define DEFINE_PTR_CLEANUP_FUNC(type, func)         \
     __attribute__((__unused__))                     \
     static inline void _cleanup_##func(type *p) {   \
