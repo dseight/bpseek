@@ -1,4 +1,5 @@
 #include "hex.h"
+#include "common.h"
 #include <stdlib.h>
 #include <stdbool.h>
 #include <ctype.h>
@@ -236,38 +237,80 @@ static void print_byte_with_mask(unsigned char byte, unsigned char mask)
     }
 }
 
-static void print_hex_line_with_mask(const unsigned char *buf,
-                                     const unsigned char *mask,
-                                     size_t off, size_t len)
+static void print_hex_part(const unsigned char *buf,
+                           const unsigned char *mask,
+                           size_t off,
+                           size_t len,
+                           unsigned int blanks_start,
+                           unsigned int blanks_end)
 {
-    const unsigned char *saved_buf = buf;
-    const unsigned char *saved_mask = mask;
-    size_t saved_len = len;
+    size_t byte_idx = 0;
 
-    printf("%s%s%08zx%s%s", outer_sep(), cl_offset, off, cl_reset, outer_sep());
+    while (blanks_start--) {
+        if (byte_idx % 8 == 0 && byte_idx != len && byte_idx != 0)
+            printf(" %s%s", cl_reset, inner_sep());
+        printf("   ");
+        byte_idx++;
+    }
 
-    while (len) {
-        if (len % 8 == 0 && len != saved_len && len != 0)
+    while (len--) {
+        if (byte_idx % 8 == 0 && byte_idx != len && byte_idx != 0)
             printf(" %s%s", cl_reset, inner_sep());
         printf(" ");
         print_byte_with_mask(*buf++, *mask++);
-        len--;
+        byte_idx++;
     }
 
-    printf("%s %s", cl_reset, outer_sep());
+    while (blanks_end--) {
+        if (byte_idx % 8 == 0 && byte_idx != len && byte_idx != 0)
+            printf(" %s%s", cl_reset, inner_sep());
+        printf("   ");
+        byte_idx++;
+    }
+}
 
-    buf = saved_buf;
-    mask = saved_mask;
-    len = saved_len;
+static void print_ascii_part(const unsigned char *buf,
+                             const unsigned char *mask,
+                             size_t off,
+                             size_t len,
+                             unsigned int blanks_start,
+                             unsigned int blanks_end)
+{
+    size_t byte_idx = 0;
 
-    /* FIXME: this will not print correctly if len != bytes_per_line */
-    while (len) {
-        if (len % 8 == 0 && len != saved_len && len != 0)
+    while (blanks_start--) {
+        if (byte_idx % 8 == 0 && byte_idx != len && byte_idx != 0)
+            printf("%s%s", cl_reset, inner_sep());
+        printf(" ");
+        byte_idx++;
+    }
+
+    while (len--) {
+        if (byte_idx % 8 == 0 && byte_idx != len && byte_idx != 0)
             printf("%s%s", cl_reset, inner_sep());
         print_char_with_mask(*buf++, *mask++);
-        len--;
+        byte_idx++;
     }
 
+    while (blanks_end--) {
+        if (byte_idx % 8 == 0 && byte_idx != len && byte_idx != 0)
+            printf("%s%s", cl_reset, inner_sep());
+        printf(" ");
+        byte_idx++;
+    }
+}
+
+static void print_line_with_mask(const unsigned char *buf,
+                                 const unsigned char *mask,
+                                 size_t off,
+                                 size_t len,
+                                 unsigned int blanks_start,
+                                 unsigned int blanks_end)
+{
+    printf("%s%s%08zx%s%s", outer_sep(), cl_offset, off, cl_reset, outer_sep());
+    print_hex_part(buf, mask, off, len, blanks_start, blanks_end);
+    printf("%s %s", cl_reset, outer_sep());
+    print_ascii_part(buf, mask, off, len, blanks_start, blanks_end);
     printf("%s%s\n", cl_reset, outer_sep());
 }
 
@@ -337,16 +380,21 @@ void print_hex_with_mask(const unsigned char *buf,
                          size_t len, size_t addr)
 {
     const size_t bytes_per_line = columns * 8;
+    size_t aligned_addr = rounddown(addr, bytes_per_line);
+    unsigned int blanks_start = addr - aligned_addr;
 
     cl_offset = use_color ? CL_OFFSET : "";
     cl_reset = use_color ? CL_RESET : "";
 
     print_header();
 
-    /* TODO: always align to 16 bytes (blanks in the beginning/end) */
     for (size_t off = 0; off < len; off += bytes_per_line) {
-        size_t bytes = len - off >= bytes_per_line ? bytes_per_line : len - off;
-        print_hex_line_with_mask(buf + off, mask + off, addr + off, bytes);
+        size_t bytes = len - off >= bytes_per_line - blanks_start
+                     ? bytes_per_line - blanks_start : len - off;
+        print_line_with_mask(buf + off, mask + off, aligned_addr + off, bytes,
+                             blanks_start, bytes_per_line - bytes - blanks_start);
+        /* After the first line there can't be any blank bytes in the start */
+        blanks_start = 0;
     }
 
     print_footer();
