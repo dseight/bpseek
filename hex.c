@@ -1,5 +1,6 @@
 #include "hex.h"
 #include "common.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <ctype.h>
@@ -177,12 +178,12 @@ static const char *color(enum ByteCategory category)
     }
 }
 
-static void print_byte(unsigned char byte)
+static void print_byte(FILE *f, unsigned char byte)
 {
-    printf("%s%02x", color(byte_category(byte)), byte);
+    fprintf(f, "%s%02x", color(byte_category(byte)), byte);
 }
 
-static void print_char_with_mask(unsigned char byte, unsigned char mask)
+static void print_char_with_mask(FILE *f, unsigned char byte, unsigned char mask)
 {
     enum ByteCategory category;
 
@@ -191,53 +192,54 @@ static void print_char_with_mask(unsigned char byte, unsigned char mask)
     else
         category = byte_category(byte);
 
-    printf("%s", color(category));
+    fprintf(f, "%s", color(category));
 
     switch (category) {
     case Null:
-        printf("⋄");
+        fprintf(f, "⋄");
         break;
     case AsciiPrintable:
-        printf("%c", byte);
+        fprintf(f, "%c", byte);
         break;
     case AsciiWhitespace:
-        printf("%c", byte == 0x20 ? ' ' : '_');
+        fprintf(f, "%c", byte == 0x20 ? ' ' : '_');
         break;
     case AsciiOther:
-        printf("•");
+        fprintf(f, "•");
         break;
     case NonAscii:
     case Masked:
-        printf("×");
+        fprintf(f, "×");
         break;
     }
 }
 
-static void print_byte_with_mask(unsigned char byte, unsigned char mask)
+static void print_byte_with_mask(FILE *f, unsigned char byte, unsigned char mask)
 {
     if (!mask) {
-        print_byte(byte);
+        print_byte(f, byte);
         return;
     }
 
     if (mask & 0xf0) {
-        printf("%s", color(Masked));
-        putchar('X');
+        fprintf(f, "%s", color(Masked));
+        fputc('X', f);
     } else {
-        printf("%s", color(NonAscii));
-        putchar(ascii_octet[(byte >> 4) & 0xf]);
+        fprintf(f, "%s", color(NonAscii));
+        fputc(ascii_octet[(byte >> 4) & 0xf], f);
     }
 
     if (mask & 0x0f) {
-        printf("%s", color(Masked));
-        putchar('X');
+        fprintf(f, "%s", color(Masked));
+        fputc('X', f);
     } else {
-        printf("%s", color(NonAscii));
-        putchar(ascii_octet[byte & 0xf]);
+        fprintf(f, "%s", color(NonAscii));
+        fputc(ascii_octet[byte & 0xf], f);
     }
 }
 
-static void print_hex_part(const unsigned char *buf,
+static void print_hex_part(FILE *f,
+                           const unsigned char *buf,
                            const unsigned char *mask,
                            size_t off,
                            size_t len,
@@ -248,28 +250,29 @@ static void print_hex_part(const unsigned char *buf,
 
     while (blanks_start--) {
         if (byte_idx % 8 == 0 && byte_idx != len && byte_idx != 0)
-            printf(" %s%s", cl_reset, inner_sep());
-        printf("   ");
+            fprintf(f, " %s%s", cl_reset, inner_sep());
+        fprintf(f, "   ");
         byte_idx++;
     }
 
     while (len--) {
         if (byte_idx % 8 == 0 && byte_idx != len && byte_idx != 0)
-            printf(" %s%s", cl_reset, inner_sep());
-        printf(" ");
-        print_byte_with_mask(*buf++, *mask++);
+            fprintf(f, " %s%s", cl_reset, inner_sep());
+        fprintf(f, " ");
+        print_byte_with_mask(f, *buf++, mask ? *mask++ : 0);
         byte_idx++;
     }
 
     while (blanks_end--) {
         if (byte_idx % 8 == 0 && byte_idx != len && byte_idx != 0)
-            printf(" %s%s", cl_reset, inner_sep());
-        printf("   ");
+            fprintf(f, " %s%s", cl_reset, inner_sep());
+        fprintf(f, "   ");
         byte_idx++;
     }
 }
 
-static void print_ascii_part(const unsigned char *buf,
+static void print_ascii_part(FILE *f,
+                             const unsigned char *buf,
                              const unsigned char *mask,
                              size_t off,
                              size_t len,
@@ -280,79 +283,80 @@ static void print_ascii_part(const unsigned char *buf,
 
     while (blanks_start--) {
         if (byte_idx % 8 == 0 && byte_idx != len && byte_idx != 0)
-            printf("%s%s", cl_reset, inner_sep());
-        printf(" ");
+            fprintf(f, "%s%s", cl_reset, inner_sep());
+        fprintf(f, " ");
         byte_idx++;
     }
 
     while (len--) {
         if (byte_idx % 8 == 0 && byte_idx != len && byte_idx != 0)
-            printf("%s%s", cl_reset, inner_sep());
-        print_char_with_mask(*buf++, *mask++);
+            fprintf(f, "%s%s", cl_reset, inner_sep());
+        print_char_with_mask(f, *buf++, mask ? *mask++ : 0);
         byte_idx++;
     }
 
     while (blanks_end--) {
         if (byte_idx % 8 == 0 && byte_idx != len && byte_idx != 0)
-            printf("%s%s", cl_reset, inner_sep());
-        printf(" ");
+            fprintf(f, "%s%s", cl_reset, inner_sep());
+        fprintf(f, " ");
         byte_idx++;
     }
 }
 
-static void print_line_with_mask(const unsigned char *buf,
+static void print_line_with_mask(FILE *f,
+                                 const unsigned char *buf,
                                  const unsigned char *mask,
                                  size_t off,
                                  size_t len,
                                  unsigned int blanks_start,
                                  unsigned int blanks_end)
 {
-    printf("%s%s%08zx%s%s", outer_sep(), cl_offset, off, cl_reset, outer_sep());
-    print_hex_part(buf, mask, off, len, blanks_start, blanks_end);
-    printf("%s %s", cl_reset, outer_sep());
-    print_ascii_part(buf, mask, off, len, blanks_start, blanks_end);
-    printf("%s%s\n", cl_reset, outer_sep());
+    fprintf(f, "%s%s%08zx%s%s", outer_sep(), cl_offset, off, cl_reset, outer_sep());
+    print_hex_part(f, buf, mask, off, len, blanks_start, blanks_end);
+    fprintf(f, "%s %s", cl_reset, outer_sep());
+    print_ascii_part(f, buf, mask, off, len, blanks_start, blanks_end);
+    fprintf(f, "%s%s\n", cl_reset, outer_sep());
 }
 
-static void print_hf(const char *(element)(enum BorderElement e))
+static void print_hf(FILE *f, const char *(element)(enum BorderElement e))
 {
-    printf("%s", element(LeftCorner));
+    fprintf(f, "%s", element(LeftCorner));
 
     /* Address is fixed to 8 octets */
     for (int i = 0; i < 8; i++)
-        printf("%s", element(HorizontalLine));
+        fprintf(f, "%s", element(HorizontalLine));
 
-    printf("%s", element(ColumnSeparator));
+    fprintf(f, "%s", element(ColumnSeparator));
 
     /* Columns with data */
     for (int i = 0; i < columns; i++) {
         for (int j = 0; j < 3 * 8 + 1; j++) {
-            printf("%s", element(HorizontalLine));
+            fprintf(f, "%s", element(HorizontalLine));
         }
-        printf("%s", element(ColumnSeparator));
+        fprintf(f, "%s", element(ColumnSeparator));
     }
 
     /* Columns with ascii */
     for (int i = 0; i < columns; i++) {
         for (int j = 0; j < 8; j++) {
-            printf("%s", element(HorizontalLine));
+            fprintf(f, "%s", element(HorizontalLine));
         }
         /* Don't print last separator -- right corner goes there */
         if (i != columns - 1)
-            printf("%s", element(ColumnSeparator));
+            fprintf(f, "%s", element(ColumnSeparator));
     }
 
-    printf("%s\n", element(RightCorner));
+    fprintf(f, "%s\n", element(RightCorner));
 }
 
-static void print_header(void)
+static void print_header(FILE *f)
 {
-    print_hf(header_element);
+    print_hf(f, header_element);
 }
 
-static void print_footer(void)
+static void print_footer(FILE *f)
 {
-    print_hf(footer_element);
+    print_hf(f, footer_element);
 }
 
 void set_use_color(bool use)
@@ -370,14 +374,19 @@ void set_empty_byte(unsigned char byte)
     empty_byte = byte;
 }
 
+void fprint_hex(FILE *out, const unsigned char *buf, size_t len, size_t addr)
+{
+    fprint_hex_with_mask(out, buf, NULL, len, addr);
+}
+
 void print_hex(const unsigned char *buf, size_t len, size_t addr)
 {
     print_hex_with_mask(buf, NULL, len, addr);
 }
 
-void print_hex_with_mask(const unsigned char *buf,
-                         const unsigned char *mask,
-                         size_t len, size_t addr)
+void fprint_hex_with_mask(FILE *out, const unsigned char *buf,
+                          const unsigned char *mask,
+                          size_t len, size_t addr)
 {
     const size_t bytes_per_line = columns * 8;
     size_t aligned_addr = rounddown(addr, bytes_per_line);
@@ -386,16 +395,30 @@ void print_hex_with_mask(const unsigned char *buf,
     cl_offset = use_color ? CL_OFFSET : "";
     cl_reset = use_color ? CL_RESET : "";
 
-    print_header();
+    print_header(out);
 
     for (size_t off = 0; off < len; off += bytes_per_line) {
         size_t bytes = len - off >= bytes_per_line - blanks_start
                      ? bytes_per_line - blanks_start : len - off;
-        print_line_with_mask(buf + off, mask + off, aligned_addr + off, bytes,
-                             blanks_start, bytes_per_line - bytes - blanks_start);
+
+        print_line_with_mask(out,
+                             buf + off,
+                             mask ? mask + off : NULL,
+                             aligned_addr + off,
+                             bytes,
+                             blanks_start,
+                             bytes_per_line - bytes - blanks_start);
+
         /* After the first line there can't be any blank bytes in the start */
         blanks_start = 0;
     }
 
-    print_footer();
+    print_footer(out);
+}
+
+void print_hex_with_mask(const unsigned char *buf,
+                         const unsigned char *mask,
+                         size_t len, size_t addr)
+{
+    fprint_hex_with_mask(stdout, buf, mask, len, addr);
 }

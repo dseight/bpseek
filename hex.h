@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdio.h>
 #include <stddef.h>
 #include <stdbool.h>
 
@@ -22,7 +23,13 @@ void set_border_style(enum BorderStyle style);
  */
 void set_empty_byte(unsigned char byte);
 
+void fprint_hex(FILE *out, const unsigned char *buf, size_t len, size_t addr);
+
 void print_hex(const unsigned char *buf, size_t len, size_t addr);
+
+void fprint_hex_with_mask(FILE *out, const unsigned char *buf,
+                          const unsigned char *mask,
+                          size_t len, size_t addr);
 
 /* As print_hex(), but octets with mask on them shown as "X" */
 void print_hex_with_mask(const unsigned char *buf,
