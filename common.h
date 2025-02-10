@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdlib.h>
+
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*x))
 
 #define rounddown(x, y)                             \
@@ -18,6 +20,14 @@
     }
 
 #define _cleanup(func) __attribute__((__cleanup__(_cleanup_##func)))
+
+static inline void _cleanup_free(void *p) {
+    void **_p = (void **)p;
+    free(*_p);
+    *_p = NULL;
+}
+
+#define _autofree __attribute__((__cleanup__(_cleanup_free)))
 
 #define _steal_ptr(var)                             \
     ({                                              \
