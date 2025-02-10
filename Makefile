@@ -15,13 +15,13 @@ CFLAGS += $(DGFLAGS)
 all: bpseek bpgen test
 
 bpseek: bpseek.o pattern.o hex.o
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(LINK.o) $^ $(LDLIBS) -o $@
 
 bpgen: bpgen.o generator.o
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(LINK.o) $^ $(LDLIBS) -o $@
 
 test: test.o pattern.o hex.o
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(LINK.o) $^ $(LDLIBS) -o $@
 
 tests: test bpseek bpgen
 	@./test
