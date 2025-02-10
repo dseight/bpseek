@@ -8,7 +8,7 @@
 #include <sys/wait.h>
 #include <assert.h>
 
-static int has_failures = 0;
+static int has_failures;
 
 DEFINE_PTR_CLEANUP_FUNC(FILE *, fclose);
 
