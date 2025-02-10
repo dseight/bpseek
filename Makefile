@@ -17,7 +17,7 @@ bpseek: main.o pattern.o hex.o
 bpgen: bpgen.o generator.o
 	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
-test: test.o pattern.o
+test: test.o pattern.o hex.o
 	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 tests: test bpseek bpgen
