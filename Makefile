@@ -24,6 +24,7 @@ tests: test bpseek bpgen
 	@./test
 	@./bpgen test.data
 	@./bpseek -x 128 -X 128 test.data
+	@BIN_DIR=. SCRIPT_DIR=tests tests/test.sh
 
 clean:
 	rm -f bpseek bpgen test test.data *.o
