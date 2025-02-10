@@ -388,6 +388,7 @@ void fprint_hex_with_mask(FILE *out, const unsigned char *buf,
                           const unsigned char *mask,
                           size_t len, size_t addr)
 {
+    size_t off = 0;
     const size_t bytes_per_line = columns * 8;
     size_t aligned_addr = rounddown(addr, bytes_per_line);
     unsigned int blanks_start = addr - aligned_addr;
@@ -397,17 +398,23 @@ void fprint_hex_with_mask(FILE *out, const unsigned char *buf,
 
     print_header(out);
 
-    for (size_t off = 0; off < len; off += bytes_per_line) {
+    /* Addr will be compensated with some blanks on the first line */
+    addr = aligned_addr;
+
+    while (off < len) {
         size_t bytes = len - off >= bytes_per_line - blanks_start
                      ? bytes_per_line - blanks_start : len - off;
 
         print_line_with_mask(out,
                              buf + off,
                              mask ? mask + off : NULL,
-                             aligned_addr + off,
+                             addr,
                              bytes,
                              blanks_start,
                              bytes_per_line - bytes - blanks_start);
+
+        off += bytes;
+        addr += bytes_per_line;
 
         /* After the first line there can't be any blank bytes in the start */
         blanks_start = 0;
