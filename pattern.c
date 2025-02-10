@@ -62,26 +62,22 @@ static double ratio_for_pattern_with_size(const void *data,
 
     if (pattern_size % 8 == 0 && (unsigned long)data % 8 == 0) {
         for (int i = 0; i < chunks - 1; i++) {
-            xor_bufs64(data, data + pattern_size, pattern_size, xor_buf);
-            or_bufs64(mask, xor_buf, pattern_size);
+            accumulate_xor_bufs64(data, data + pattern_size, pattern_size, mask);
         }
         varying_bits = popcount_buf64(mask, pattern_size);
     } else if (pattern_size % 4 == 0 && (unsigned long)data % 4 == 0) {
         for (int i = 0; i < chunks - 1; i++) {
-            xor_bufs32(data, data + pattern_size, pattern_size, xor_buf);
-            or_bufs32(mask, xor_buf, pattern_size);
+            accumulate_xor_bufs32(data, data + pattern_size, pattern_size, mask);
         }
         varying_bits = popcount_buf32(mask, pattern_size);
     } else if (pattern_size % 2 == 0 && (unsigned long)data % 2 == 0) {
         for (int i = 0; i < chunks - 1; i++) {
-            xor_bufs16(data, data + pattern_size, pattern_size, xor_buf);
-            or_bufs16(mask, xor_buf, pattern_size);
+            accumulate_xor_bufs16(data, data + pattern_size, pattern_size, mask);
         }
         varying_bits = popcount_buf16(mask, pattern_size);
     } else {
         for (int i = 0; i < chunks - 1; i++) {
-            xor_bufs(data, data + pattern_size, pattern_size, xor_buf);
-            or_bufs(mask, xor_buf, pattern_size);
+            accumulate_xor_bufs(data, data + pattern_size, pattern_size, mask);
         }
         varying_bits = popcount_buf(mask, pattern_size);
     }

@@ -3,65 +3,33 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/*
- * TODO: combine xor & or operations into a single function to improve
- * cache locality.
- */
-
-static void xor_bufs(const uint8_t *buf1, const uint8_t *buf2,
-                     size_t len, uint8_t *dst)
+static void accumulate_xor_bufs(const uint8_t *buf1, const uint8_t *buf2,
+                                size_t len, uint8_t *acc)
 {
     for (int i = 0; i < len; i++)
-        dst[i] = buf1[i] ^ buf2[i];
+        acc[i] |= buf1[i] ^ buf2[i];
 }
 
-static void xor_bufs16(const uint16_t *buf1, const uint16_t *buf2,
-                       size_t len, uint16_t *dst)
+static void accumulate_xor_bufs16(const uint16_t *buf1, const uint16_t *buf2,
+                                  size_t len, uint16_t *acc)
 {
     for (int i = 0; i < len / 2; i++)
-        dst[i] = buf1[i] ^ buf2[i];
+        acc[i] |= buf1[i] ^ buf2[i];
 }
 
-static void xor_bufs32(const uint32_t *buf1, const uint32_t *buf2,
-                       size_t len, uint32_t *dst)
+static void accumulate_xor_bufs32(const uint32_t *buf1, const uint32_t *buf2,
+                                  size_t len, uint32_t *acc)
 {
     for (int i = 0; i < len / 4; i++)
-        dst[i] = buf1[i] ^ buf2[i];
+        acc[i] |= buf1[i] ^ buf2[i];
 }
 
-static void xor_bufs64(const uint64_t *buf1, const uint64_t *buf2,
-                       size_t len, uint64_t *dst)
+static void accumulate_xor_bufs64(const uint64_t *buf1, const uint64_t *buf2,
+                                  size_t len, uint64_t *acc)
 {
     for (int i = 0; i < len / 8; i++)
-        dst[i] = buf1[i] ^ buf2[i];
+        acc[i] |= buf1[i] ^ buf2[i];
 }
-
-
-/* OR data in dts and src buffers and put it to dst. */
-static void or_bufs(uint8_t *dst, const uint8_t *src, size_t len)
-{
-    for (int i = 0; i < len; i++)
-        dst[i] |= src[i];
-}
-
-static void or_bufs16(uint16_t *dst, const uint16_t *src, size_t len)
-{
-    for (int i = 0; i < len / 2; i++)
-        dst[i] |= src[i];
-}
-
-static void or_bufs32(uint32_t *dst, const uint32_t *src, size_t len)
-{
-    for (int i = 0; i < len / 4; i++)
-        dst[i] |= src[i];
-}
-
-static void or_bufs64(uint64_t *dst, const uint64_t *src, size_t len)
-{
-    for (int i = 0; i < len / 8; i++)
-        dst[i] |= src[i];
-}
-
 
 static uint64_t popcount_buf(uint8_t *buf, size_t len)
 {
