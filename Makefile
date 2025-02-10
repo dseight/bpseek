@@ -14,7 +14,7 @@ CFLAGS += $(DGFLAGS)
 
 all: bpseek bpgen test
 
-bpseek: main.o pattern.o hex.o
+bpseek: bpseek.o pattern.o hex.o
 	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 bpgen: bpgen.o generator.o
