@@ -60,6 +60,11 @@ static double ratio_for_pattern_with_size(const void *data,
 
     memset(mask, 0, pattern_size);
 
+    /*
+     * TODO: try to align as much as possible. If there's a large unaligned
+     * chunk, split it into a couple of unaligned pieces and into a single
+     * aligned piece.
+     */
     if (pattern_size % 8 == 0 && (unsigned long)data % 8 == 0) {
         for (int i = 0; i < chunks - 1; i++) {
             accumulate_xor_bufs64(data, data + pattern_size, pattern_size, mask);
