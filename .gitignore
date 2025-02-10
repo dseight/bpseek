@@ -1,4 +1,6 @@
 bpseek
+bpgen
+benchmark
 test
 *.d
 *.o

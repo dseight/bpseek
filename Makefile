@@ -12,12 +12,15 @@ CFLAGS += -Werror=implicit-function-declaration
 CFLAGS += -Werror=strict-prototypes
 CFLAGS += $(DGFLAGS)
 
-all: bpseek bpgen test
+all: bpseek bpgen benchmark test
 
 bpseek: bpseek.o pattern.o hex.o
 	$(LINK.o) $^ $(LDLIBS) -o $@
 
 bpgen: bpgen.o generator.o
+	$(LINK.o) $^ $(LDLIBS) -o $@
+
+benchmark: benchmark.o generator.o pattern.o
 	$(LINK.o) $^ $(LDLIBS) -o $@
 
 test: test.o pattern.o hex.o
@@ -30,7 +33,7 @@ tests: test bpseek bpgen
 	@BIN_DIR=. SCRIPT_DIR=tests tests/test.sh
 
 clean:
-	rm -f bpseek bpgen test test.data *.d *.o
+	rm -f bpseek bpgen benchmark test test.data *.d *.o
 
 .PHONY: clean
 
