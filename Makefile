@@ -4,10 +4,13 @@ LDFLAGS ?= -flto
 # CFLAGS = -g -O0 -fsanitize=address -fno-omit-frame-pointer
 # LDFLAGS = -fsanitize=address -fno-omit-frame-pointer
 
+DGFLAGS = -MMD -MP -MT $@ -MF $(@D)/$(*F).d
+
 CFLAGS += -Wall
 CFLAGS += -Wundef
 CFLAGS += -Werror=implicit-function-declaration
 CFLAGS += -Werror=strict-prototypes
+CFLAGS += $(DGFLAGS)
 
 all: bpseek bpgen test
 
@@ -27,6 +30,9 @@ tests: test bpseek bpgen
 	@BIN_DIR=. SCRIPT_DIR=tests tests/test.sh
 
 clean:
-	rm -f bpseek bpgen test test.data *.o
+	rm -f bpseek bpgen test test.data *.d *.o
 
 .PHONY: clean
+
+# Include generated dependencies
+-include $(wildcard *.d)

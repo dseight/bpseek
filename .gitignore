@@ -1,3 +1,4 @@
 bpseek
 test
+*.d
 *.o
