@@ -7,8 +7,7 @@
 struct pattern {
     size_t len;
     off_t off;      // global offset within data
-    void *mask;
-    void *xor_buf;
+    void *mask;     // mask with varying bits
 };
 
 struct pattern *find_pattern(const void *data, size_t data_size,

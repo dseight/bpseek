@@ -35,15 +35,11 @@ static struct pattern *new_pattern(size_t max_size)
     if (posix_memalign(&pattern->mask, cache_line_size(), max_size))
         return NULL;
 
-    if (posix_memalign(&pattern->xor_buf, cache_line_size(), max_size))
-        return NULL;
-
     return _steal_ptr(pattern);
 }
 
 void free_pattern(struct pattern *pattern)
 {
-    free(pattern->xor_buf);
     free(pattern->mask);
     free(pattern);
 }
@@ -51,8 +47,7 @@ void free_pattern(struct pattern *pattern)
 static double ratio_for_pattern_with_size(const void *data,
                                           size_t data_size,
                                           size_t pattern_size,
-                                          void *mask,
-                                          void *xor_buf)
+                                          void *mask)
 {
     size_t chunks = data_size / pattern_size;
     uint64_t pattern_bits = pattern_size * 8;
@@ -105,8 +100,7 @@ struct pattern *find_pattern(const void *data, size_t data_size,
             double ratio = ratio_for_pattern_with_size(data + off,
                                                        data_size - off,
                                                        size,
-                                                       pattern->mask,
-                                                       pattern->xor_buf);
+                                                       pattern->mask);
             // printf("ratio(%zu, %zu): %f\n", (size_t)off, size, ratio);
             if (ratio < min_ratio) {
                 min_ratio = ratio;
@@ -120,7 +114,7 @@ struct pattern *find_pattern(const void *data, size_t data_size,
     ratio_for_pattern_with_size(data + pattern->off,
                                 data_size - pattern->off,
                                 pattern->len,
-                                pattern->mask, pattern->xor_buf);
+                                pattern->mask);
 
     return pattern;
 }
