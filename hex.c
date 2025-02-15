@@ -9,7 +9,7 @@
 static bool use_color;
 static unsigned char empty_byte;
 static const unsigned int columns = 2;
-static enum BorderStyle border_style = BorderStyleUnicode;
+static enum Style style = StyleUnicode;
 
 #define CL_NULL             "\x1b[90m"
 #define CL_OFFSET           "\x1b[90m"
@@ -50,8 +50,8 @@ static const char ascii_octet[] = {
 
 static const char *header_element(enum BorderElement e)
 {
-    switch (border_style) {
-    case BorderStyleUnicode:
+    switch (style) {
+    case StyleUnicode:
         switch (e) {
         case LeftCorner:
             return "┌";
@@ -64,7 +64,7 @@ static const char *header_element(enum BorderElement e)
         default:
             abort();
         }
-    case BorderStyleAscii:
+    case StyleAscii:
         switch (e) {
         case HorizontalLine:
             return "-";
@@ -75,7 +75,7 @@ static const char *header_element(enum BorderElement e)
         default:
             abort();
         }
-    case BorderStyleNone:
+    case StyleNone:
     default:
         return "";
     }
@@ -83,8 +83,8 @@ static const char *header_element(enum BorderElement e)
 
 static const char *footer_element(enum BorderElement e)
 {
-    switch (border_style) {
-    case BorderStyleUnicode:
+    switch (style) {
+    case StyleUnicode:
         switch (e) {
         case LeftCorner:
             return "└";
@@ -97,7 +97,7 @@ static const char *footer_element(enum BorderElement e)
         default:
             abort();
         }
-    case BorderStyleAscii:
+    case StyleAscii:
         switch (e) {
         case HorizontalLine:
             return "-";
@@ -108,7 +108,7 @@ static const char *footer_element(enum BorderElement e)
         default:
             abort();
         }
-    case BorderStyleNone:
+    case StyleNone:
     default:
         return "";
     }
@@ -116,12 +116,12 @@ static const char *footer_element(enum BorderElement e)
 
 static const char *outer_sep(void)
 {
-    switch (border_style) {
-    case BorderStyleUnicode:
+    switch (style) {
+    case StyleUnicode:
         return "│";
-    case BorderStyleAscii:
+    case StyleAscii:
         return "|";
-    case BorderStyleNone:
+    case StyleNone:
     default:
         return " ";
     }
@@ -129,12 +129,12 @@ static const char *outer_sep(void)
 
 static const char *inner_sep(void)
 {
-    switch (border_style) {
-    case BorderStyleUnicode:
+    switch (style) {
+    case StyleUnicode:
         return "┊";
-    case BorderStyleAscii:
+    case StyleAscii:
         return "|";
-    case BorderStyleNone:
+    case StyleNone:
     default:
         return " ";
     }
@@ -196,7 +196,7 @@ static void print_char_with_mask(FILE *f, unsigned char byte, unsigned char mask
 
     switch (category) {
     case Null:
-        fprintf(f, "⋄");
+        fprintf(f, style == StyleUnicode ? "⋄" : ".");
         break;
     case AsciiPrintable:
         fprintf(f, "%c", byte);
@@ -205,11 +205,11 @@ static void print_char_with_mask(FILE *f, unsigned char byte, unsigned char mask
         fprintf(f, "%c", byte == 0x20 ? ' ' : '_');
         break;
     case AsciiOther:
-        fprintf(f, "•");
+        fprintf(f, style == StyleUnicode ? "•" : ".");
         break;
     case NonAscii:
     case Masked:
-        fprintf(f, "×");
+        fprintf(f, style == StyleUnicode ? "×" : "x");
         break;
     }
 }
@@ -364,9 +364,9 @@ void set_use_color(bool use)
     use_color = use;
 }
 
-void set_border_style(enum BorderStyle style)
+void set_style(enum Style _style)
 {
-    border_style = style;
+    style = _style;
 }
 
 void set_empty_byte(unsigned char byte)

@@ -61,7 +61,7 @@ static void test_output_aligned(void)
     };
 
     set_use_color(false);
-    set_border_style(BorderStyleUnicode);
+    set_style(StyleUnicode);
 
     f = open_memstream(&stdout_buf, &stdout_buf_size);
     fprint_hex(f, buf, sizeof(buf), 0);
@@ -90,7 +90,7 @@ static void test_output_unaligned_multiline(void)
     };
 
     set_use_color(false);
-    set_border_style(BorderStyleUnicode);
+    set_style(StyleUnicode);
 
     f = open_memstream(&stdout_buf, &stdout_buf_size);
     fprint_hex(f, buf, sizeof(buf), 3);
@@ -115,7 +115,7 @@ static void test_output_unaligned_singleline(void)
     static const uint8_t buf[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x0a };
 
     set_use_color(false);
-    set_border_style(BorderStyleUnicode);
+    set_style(StyleUnicode);
 
     f = open_memstream(&stdout_buf, &stdout_buf_size);
     fprint_hex(f, buf, sizeof(buf), 4);

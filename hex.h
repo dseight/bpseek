@@ -4,18 +4,18 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-enum BorderStyle {
-    /* Draw a border with Unicode characters. */
-    BorderStyleUnicode,
-    /* Draw a border with ASCII characters. */
-    BorderStyleAscii,
-    /* Do not draw a border at all. */
-    BorderStyleNone,
+enum Style {
+    /* Use Unicode characters in character panel and for drawing a border. */
+    StyleUnicode,
+    /* Use only ASCII characters in character panel and for drawing a border. */
+    StyleAscii,
+    /* Do not draw a border at all. ASCII characters in character panel. */
+    StyleNone,
 };
 
 void set_use_color(bool use);
 
-void set_border_style(enum BorderStyle style);
+void set_style(enum Style style);
 
 /*
  * Override what is considered "empty". By default it is 0x00.
