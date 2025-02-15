@@ -7,6 +7,7 @@
 struct pattern {
     size_t len;
     off_t off;      // global offset within data
+    void *buf;      // underlying mask buffer
     void *mask;     // mask with varying bits
 };
 

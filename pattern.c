@@ -33,12 +33,18 @@ static size_t cache_line_size(void)
 static struct pattern *pattern_new(size_t max_size)
 {
     _cleanup(pattern_free) struct pattern *pattern = NULL;
+    /*
+     * Allocate 2 extra cache lines around the required buffer,
+     * so the mask alignment can match the data alignment.
+     */
+    size_t size = max_size + 2 * cache_line_size();
 
     pattern = calloc(1, sizeof(*pattern));
     if (!pattern)
         return NULL;
 
-    if (posix_memalign(&pattern->mask, cache_line_size(), max_size))
+    pattern->buf = malloc(size);
+    if (!pattern->buf)
         return NULL;
 
     return _steal_ptr(pattern);
@@ -46,7 +52,7 @@ static struct pattern *pattern_new(size_t max_size)
 
 void pattern_free(struct pattern *pattern)
 {
-    free(pattern->mask);
+    free(pattern->buf);
     free(pattern);
 }
 
@@ -70,32 +76,10 @@ static double calc_ratio(const void *data,
 
     memset(mask, 0, pattern_size);
 
-    /*
-     * TODO: try to align as much as possible. If there's a large unaligned
-     * chunk, split it into a couple of unaligned pieces and into a single
-     * aligned piece.
-     */
-    if (pattern_size % 8 == 0 && (unsigned long)data % 8 == 0) {
-        for (int i = 0; i < chunks - 1; i++) {
-            accumulate_xor_bufs64(data, data + pattern_size, pattern_size, mask);
-        }
-        varying_bits = popcount_buf64(mask, pattern_size);
-    } else if (pattern_size % 4 == 0 && (unsigned long)data % 4 == 0) {
-        for (int i = 0; i < chunks - 1; i++) {
-            accumulate_xor_bufs32(data, data + pattern_size, pattern_size, mask);
-        }
-        varying_bits = popcount_buf32(mask, pattern_size);
-    } else if (pattern_size % 2 == 0 && (unsigned long)data % 2 == 0) {
-        for (int i = 0; i < chunks - 1; i++) {
-            accumulate_xor_bufs16(data, data + pattern_size, pattern_size, mask);
-        }
-        varying_bits = popcount_buf16(mask, pattern_size);
-    } else {
-        for (int i = 0; i < chunks - 1; i++) {
-            accumulate_xor_bufs8(data, data + pattern_size, pattern_size, mask);
-        }
-        varying_bits = popcount_buf8(mask, pattern_size);
-    }
+    for (int i = 0; i < chunks - 1; i++)
+        accumulate_xor_bufs(data, data + pattern_size, pattern_size, mask);
+
+    varying_bits = popcount_buf(mask, pattern_size);
 
     return (double)varying_bits / (double)pattern_bits;
 }
@@ -116,13 +100,23 @@ struct pattern *pattern_find(const void *data,
     assert(p->off_step >= 0);
     assert(p->off_step > 0 || p->off_min == p->off_max);
 
+    uintptr_t data_addr;
+    off_t data_align;
     double min_ratio = 1.0;
     struct pattern *pattern = pattern_new(p->size_max);
 
     for (off_t off = p->off_min; off <= p->off_max; off += p->off_step) {
+        data_addr = (uintptr_t)(data + off);
+        data_align = data_addr & (cache_line_size() - 1);
+        /* Make mask ptr misaligned the same way as the data */
+        pattern->mask = pattern->buf + data_align;
+
         for (size_t size = p->size_min; size <= p->size_max; size += p->size_step) {
-            double ratio = calc_ratio(data + off, data_size - off,
-                                      size, pattern->mask);
+            double ratio;
+
+            ratio = calc_ratio(data + off, data_size - off,
+                               size, pattern->mask);
+
             // printf("ratio(%zu, %zu): %f\n", (size_t)off, size, ratio);
             if (ratio < min_ratio) {
                 min_ratio = ratio;
@@ -131,6 +125,11 @@ struct pattern *pattern_find(const void *data,
             }
         }
     }
+
+    data_addr = (uintptr_t)(data + pattern->off);
+    data_align = data_addr & (cache_line_size() - 1);
+    /* Make mask ptr misaligned the same way as the data */
+    pattern->mask = pattern->buf + data_align;
 
     /* recalculate mask for the best match */
     calc_ratio(data + pattern->off, data_size - pattern->off,
