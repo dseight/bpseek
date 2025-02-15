@@ -31,7 +31,7 @@ static void accumulate_xor_bufs64(const uint64_t *buf1, const uint64_t *buf2,
         acc[i] |= buf1[i] ^ buf2[i];
 }
 
-static uint64_t popcount_buf8(uint8_t *buf, size_t len)
+static uint64_t popcount_buf8(const uint8_t *buf, size_t len)
 {
     uint64_t ret = 0;
     for (int i = 0; i < len; i++)
@@ -39,7 +39,7 @@ static uint64_t popcount_buf8(uint8_t *buf, size_t len)
     return ret;
 }
 
-static uint64_t popcount_buf16(uint16_t *buf, size_t len)
+static uint64_t popcount_buf16(const uint16_t *buf, size_t len)
 {
     uint64_t ret = 0;
     for (int i = 0; i < len / 2; i++)
@@ -47,7 +47,7 @@ static uint64_t popcount_buf16(uint16_t *buf, size_t len)
     return ret;
 }
 
-static uint64_t popcount_buf32(uint32_t *buf, size_t len)
+static uint64_t popcount_buf32(const uint32_t *buf, size_t len)
 {
     uint64_t ret = 0;
     for (int i = 0; i < len / 4; i++)
@@ -55,7 +55,7 @@ static uint64_t popcount_buf32(uint32_t *buf, size_t len)
     return ret;
 }
 
-static uint64_t popcount_buf64(uint64_t *buf, size_t len)
+static uint64_t popcount_buf64(const uint64_t *buf, size_t len)
 {
     uint64_t ret = 0;
     for (int i = 0; i < len / 8; i++)
