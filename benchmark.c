@@ -31,7 +31,7 @@ int main(void)
 {
     struct timespec ts_start, ts_stop;
     _autofree uint8_t *buf = NULL;
-    _cleanup(free_pattern) struct pattern *pattern = NULL;
+    _cleanup(pattern_free) struct pattern *pattern = NULL;
 
     buf = malloc(BUF_SIZE);
     srand48(13);
@@ -42,7 +42,14 @@ int main(void)
     print_ts_diff("Pattern generation", &ts_start, &ts_stop);
 
     clock_gettime(CLOCK_MONOTONIC, &ts_start);
-    pattern = find_pattern(buf, BUF_SIZE, 64, 2048, 1, 0, 0x1000, 8);
+    pattern = pattern_find(buf, BUF_SIZE, &(struct pattern_search_params){
+        .size_min = 64,
+        .size_max = 2048,
+        .size_step = 1,
+        .off_min = 0,
+        .off_max = 0x1000,
+        .off_step = 8,
+    });
     clock_gettime(CLOCK_MONOTONIC, &ts_stop);
     print_ts_diff("Pattern search", &ts_start, &ts_stop);
 

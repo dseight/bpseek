@@ -30,9 +30,9 @@ static size_t cache_line_size(void)
     return line_size;
 }
 
-static struct pattern *new_pattern(size_t max_size)
+static struct pattern *pattern_new(size_t max_size)
 {
-    _cleanup(free_pattern) struct pattern *pattern;
+    _cleanup(pattern_free) struct pattern *pattern = NULL;
 
     pattern = calloc(1, sizeof(*pattern));
     if (!pattern)
@@ -44,16 +44,25 @@ static struct pattern *new_pattern(size_t max_size)
     return _steal_ptr(pattern);
 }
 
-void free_pattern(struct pattern *pattern)
+void pattern_free(struct pattern *pattern)
 {
     free(pattern->mask);
     free(pattern);
 }
 
-static double ratio_for_pattern_with_size(const void *data,
-                                          size_t data_size,
-                                          size_t pattern_size,
-                                          void *mask)
+/**
+ * Calculate ratio of varying bits to the size of the potential pattern.
+ *
+ * @param data: data to calculate ratio on
+ * @param data_size: size of the data
+ * @param pattern_size: size of the potential pattern
+ * @param mask: where to store the "varying bits" mask, must have the
+ *      same alignment as the data pointer.
+ */
+static double calc_ratio(const void *data,
+                         size_t data_size,
+                         size_t pattern_size,
+                         void *mask)
 {
     size_t chunks = data_size / pattern_size;
     uint64_t pattern_bits = pattern_size * 8;
@@ -91,30 +100,29 @@ static double ratio_for_pattern_with_size(const void *data,
     return (double)varying_bits / (double)pattern_bits;
 }
 
-struct pattern *find_pattern(const void *data, size_t data_size,
-                             size_t size_min, size_t size_max, size_t size_step,
-                             off_t off_min, off_t off_max, off_t off_step)
+struct pattern *pattern_find(const void *data,
+                             size_t data_size,
+                             struct pattern_search_params *p)
 {
-    assert(size_min <= data_size);
-    assert(size_max <= data_size);
+    assert(p != NULL);
+    assert(p->size_min <= data_size);
+    assert(p->size_max <= data_size);
     /* step can only be 0 if min and max are the same */
-    assert(size_step > 0 || size_min == size_max);
-    assert(off_min >= 0);
-    assert(off_max >= 0);
-    assert(off_min < data_size);
-    assert(off_max < data_size);
-    assert(off_step >= 0);
-    assert(off_step > 0 || off_min == off_max);
+    assert(p->size_step > 0 || p->size_min == p->size_max);
+    assert(p->off_min >= 0);
+    assert(p->off_max >= 0);
+    assert(p->off_min < data_size);
+    assert(p->off_max < data_size);
+    assert(p->off_step >= 0);
+    assert(p->off_step > 0 || p->off_min == p->off_max);
 
     double min_ratio = 1.0;
-    struct pattern *pattern = new_pattern(size_max);
+    struct pattern *pattern = pattern_new(p->size_max);
 
-    for (off_t off = off_min; off <= off_max; off += off_step) {
-        for (size_t size = size_min; size <= size_max; size += size_step) {
-            double ratio = ratio_for_pattern_with_size(data + off,
-                                                       data_size - off,
-                                                       size,
-                                                       pattern->mask);
+    for (off_t off = p->off_min; off <= p->off_max; off += p->off_step) {
+        for (size_t size = p->size_min; size <= p->size_max; size += p->size_step) {
+            double ratio = calc_ratio(data + off, data_size - off,
+                                      size, pattern->mask);
             // printf("ratio(%zu, %zu): %f\n", (size_t)off, size, ratio);
             if (ratio < min_ratio) {
                 min_ratio = ratio;
@@ -125,10 +133,8 @@ struct pattern *find_pattern(const void *data, size_t data_size,
     }
 
     /* recalculate mask for the best match */
-    ratio_for_pattern_with_size(data + pattern->off,
-                                data_size - pattern->off,
-                                pattern->len,
-                                pattern->mask);
+    calc_ratio(data + pattern->off, data_size - pattern->off,
+               pattern->len, pattern->mask);
 
     return pattern;
 }

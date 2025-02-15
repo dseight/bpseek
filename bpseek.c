@@ -56,12 +56,14 @@ int main(int argc, char *argv[])
     int c, fd;
     char *p;
     unsigned long val;
-    size_t size_min = 4;
-    size_t size_max = 4096;
-    size_t size_step = 4;
-    size_t off_min = 0;
-    size_t off_max = 4096;
-    size_t off_step = 4;
+    struct pattern_search_params params = {
+        .size_min = 4,
+        .size_max = 4096,
+        .size_step = 4,
+        .off_min = 0,
+        .off_max = 4096,
+        .off_step = 4,
+    };
     void *data;
     struct stat st;
     struct pattern *pattern;
@@ -79,7 +81,7 @@ int main(int argc, char *argv[])
                 fprintf(stderr, "Invalid value for --size-min/-m option\n");
                 exit(1);
             }
-            size_min = val;
+            params.size_min = val;
             break;
         case 'x':
             val = strtoul(optarg, &p, 0);
@@ -87,7 +89,7 @@ int main(int argc, char *argv[])
                 fprintf(stderr, "Invalid value for --size-max/-x option\n");
                 exit(1);
             }
-            size_max = val;
+            params.size_max = val;
             break;
         case 's':
             val = strtoul(optarg, &p, 0);
@@ -95,7 +97,7 @@ int main(int argc, char *argv[])
                 fprintf(stderr, "Invalid value for --size-step/-s option\n");
                 exit(1);
             }
-            size_step = val;
+            params.size_step = val;
             break;
         case 'M':
             val = strtoul(optarg, &p, 0);
@@ -103,7 +105,7 @@ int main(int argc, char *argv[])
                 fprintf(stderr, "Invalid value for --offset-min/-M option\n");
                 exit(1);
             }
-            off_min = val;
+            params.off_min = val;
             break;
         case 'X':
             val = strtoul(optarg, &p, 0);
@@ -111,7 +113,7 @@ int main(int argc, char *argv[])
                 fprintf(stderr, "Invalid value for --offset-max/-X option\n");
                 exit(1);
             }
-            off_max = val;
+            params.off_max = val;
             break;
         case 'S':
             val = strtoul(optarg, &p, 0);
@@ -123,7 +125,7 @@ int main(int argc, char *argv[])
                 fprintf(stderr, "Error: --offset-step/-S must be at least 1\n");
                 exit(1);
             }
-            off_step = val;
+            params.off_step = val;
             break;
         case 'c':
             if (!strcmp(optarg, "never")) {
@@ -168,7 +170,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    if (size_max > st.st_size / 2) {
+    if (params.size_max > st.st_size / 2) {
         fprintf(stderr, "Max pattern size to search is bigger than half of the file. "
                 "Please set it to something meaningful, e.g. %lu.\n",
                 (unsigned long)(st.st_size / 2));
@@ -193,9 +195,7 @@ int main(int argc, char *argv[])
         break;
     }
 
-    pattern = find_pattern(data, st.st_size,
-                           size_min, size_max, size_step,
-                           off_min, off_max, off_step);
+    pattern = pattern_find(data, st.st_size, &params);
     if (!pattern) {
         perror("Something horrible happened");
         exit(1);
