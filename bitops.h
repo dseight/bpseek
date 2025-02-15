@@ -3,8 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-static void accumulate_xor_bufs(const uint8_t *buf1, const uint8_t *buf2,
-                                size_t len, uint8_t *acc)
+static void accumulate_xor_bufs8(const uint8_t *buf1, const uint8_t *buf2,
+                                 size_t len, uint8_t *acc)
 {
     for (int i = 0; i < len; i++)
         acc[i] |= buf1[i] ^ buf2[i];
@@ -31,7 +31,7 @@ static void accumulate_xor_bufs64(const uint64_t *buf1, const uint64_t *buf2,
         acc[i] |= buf1[i] ^ buf2[i];
 }
 
-static uint64_t popcount_buf(uint8_t *buf, size_t len)
+static uint64_t popcount_buf8(uint8_t *buf, size_t len)
 {
     uint64_t ret = 0;
     for (int i = 0; i < len; i++)

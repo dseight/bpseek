@@ -83,9 +83,9 @@ static double ratio_for_pattern_with_size(const void *data,
         varying_bits = popcount_buf16(mask, pattern_size);
     } else {
         for (int i = 0; i < chunks - 1; i++) {
-            accumulate_xor_bufs(data, data + pattern_size, pattern_size, mask);
+            accumulate_xor_bufs8(data, data + pattern_size, pattern_size, mask);
         }
-        varying_bits = popcount_buf(mask, pattern_size);
+        varying_bits = popcount_buf8(mask, pattern_size);
     }
 
     return (double)varying_bits / (double)pattern_bits;
