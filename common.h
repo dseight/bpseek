@@ -36,3 +36,5 @@ static inline void _cleanup_free(void *p) {
         *_pvar = NULL;                              \
         _var;                                       \
     })
+
+#define _maybe_unused __attribute__((__unused__))
