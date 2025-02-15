@@ -33,6 +33,7 @@ static void usage(void)
         "  --offset-max MAX, -X MAX      max offset to search from (default: 4096)\n"
         "  --offset-step STEP, -S STEP   step between offsets (default: 4)\n"
         "  --color COLOR                 auto, always, never (default: auto)\n"
+        "  --style STYLE                 unicode, ascii, none (default: unicode)\n"
         "  --ff, -f                      treat 0xff as \"empty\" data instead of 0x00\n"
         "  --help, -h                    show help\n"
     );
@@ -46,6 +47,7 @@ static struct option longopts[] = {
     { "offset-max",     required_argument,  NULL,  'X' },
     { "offset-step",    required_argument,  NULL,  'S' },
     { "color",          required_argument,  NULL,  'c' },
+    { "style",          required_argument,  NULL,  'y' },
     { "ff",             no_argument,        NULL,  'f' },
     { "help",           no_argument,        NULL,  'h' },
     { NULL,             0,                  NULL,  0   }
@@ -64,12 +66,13 @@ int main(int argc, char *argv[])
         .off_max = 4096,
         .off_step = 4,
     };
+    enum Style style = StyleUnicode;
     void *data;
     struct stat st;
     struct pattern *pattern;
 
     while (1) {
-        c = getopt_long(argc, argv, "m:x:s:M:X:S:c:fh", longopts, NULL);
+        c = getopt_long(argc, argv, "m:x:s:M:X:S:c:y:fh", longopts, NULL);
 
         if (c == -1)
             break;
@@ -139,6 +142,18 @@ int main(int argc, char *argv[])
                 exit(1);
             }
             break;
+        case 'y':
+            if (!strcmp(optarg, "unicode")) {
+                style = StyleUnicode;
+            } else if (!strcmp(optarg, "ascii")) {
+                style = StyleAscii;
+            } else if (!strcmp(optarg, "none")) {
+                style = StyleNone;
+            } else {
+                fprintf(stderr, "Invalid value for --style option: %s\n", optarg);
+                exit(1);
+            }
+            break;
         case 'f':
             set_empty_byte(0xff);
             break;
@@ -194,6 +209,8 @@ int main(int argc, char *argv[])
         set_use_color(isatty(fileno(stdout)));
         break;
     }
+
+    set_style(style);
 
     pattern = pattern_find(data, st.st_size, &params);
     if (!pattern) {
