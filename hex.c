@@ -351,12 +351,14 @@ static void print_hf(FILE *f, const char *(element)(enum BorderElement e))
 
 static void print_header(FILE *f)
 {
-    print_hf(f, header_element);
+    if (style != StyleNone)
+        print_hf(f, header_element);
 }
 
 static void print_footer(FILE *f)
 {
-    print_hf(f, footer_element);
+    if (style != StyleNone)
+        print_hf(f, footer_element);
 }
 
 void set_use_color(bool use)
