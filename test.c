@@ -23,23 +23,27 @@ static void assert_strequal(const char *actual, const char *expected)
 
 static void test_32bit_clean_pattern(void)
 {
+    _cleanup(free_pattern) struct pattern *pattern = NULL;
+
     static const uint32_t buf[] = {
         0x12345678, 0x12345678, 0x12345678, 0x12345678,
         0x12345678, 0x12345678, 0x12345678, 0x12345678,
     };
 
-    struct pattern *pattern = find_pattern(buf, sizeof(buf), 1, 8, 1, 0, 0, 1);
+    pattern = find_pattern(buf, sizeof(buf), 1, 8, 1, 0, 0, 1);
     assert(pattern->len == 4);
 }
 
 static void test_32bit_varying_pattern(void)
 {
+    _cleanup(free_pattern) struct pattern *pattern = NULL;
+
     static const uint32_t buf[] = {
         0x12340678, 0x1234A678, 0x1234B678, 0x12342678,
         0x12343678, 0x12341678, 0x12347678, 0x12340678,
     };
 
-    struct pattern *pattern = find_pattern(buf, sizeof(buf), 1, 8, 1, 0, 0, 1);
+    pattern = find_pattern(buf, sizeof(buf), 1, 8, 1, 0, 0, 1);
     assert(pattern->len == 4);
 }
 
