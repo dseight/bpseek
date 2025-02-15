@@ -89,8 +89,16 @@ struct pattern *find_pattern(const void *data, size_t data_size,
                              size_t size_min, size_t size_max, size_t size_step,
                              off_t off_min, off_t off_max, off_t off_step)
 {
+    assert(size_min <= data_size);
+    assert(size_max <= data_size);
+    /* step can only be 0 if min and max are the same */
+    assert(size_step > 0 || size_min == size_max);
+    assert(off_min >= 0);
+    assert(off_max >= 0);
+    assert(off_min < data_size);
     assert(off_max < data_size);
     assert(off_step >= 0);
+    assert(off_step > 0 || off_min == off_max);
 
     double min_ratio = 1.0;
     struct pattern *pattern = new_pattern(size_max);
