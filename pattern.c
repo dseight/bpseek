@@ -14,14 +14,20 @@
 
 static size_t cache_line_size(void)
 {
+    static size_t line_size;
+
+    /* Return saved value */
+    if (line_size)
+        return line_size;
+
 #if defined(__APPLE__)
-    size_t line_size = 0;
     size_t sizeof_line_size = sizeof(line_size);
     sysctlbyname("hw.cachelinesize", &line_size, &sizeof_line_size, 0, 0);
-    return line_size;
 #else
-    return sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
+    line_size = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
 #endif
+
+    return line_size;
 }
 
 static struct pattern *new_pattern(size_t max_size)
