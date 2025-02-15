@@ -23,7 +23,7 @@ bpgen: bpgen.o generator.o
 benchmark: benchmark.o generator.o pattern.o
 	$(LINK.o) $^ $(LDLIBS) -o $@
 
-test: test.o pattern.o hex.o
+test: test.o pattern.o generator.o hex.o
 	$(LINK.o) $^ $(LDLIBS) -o $@
 
 tests: test bpseek bpgen

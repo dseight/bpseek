@@ -1,5 +1,7 @@
 #include "hex.h"
 #include "pattern.h"
+#include "generator.h"
+#include "bitops.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
@@ -12,11 +14,76 @@ static int has_failures;
 
 DEFINE_PTR_CLEANUP_FUNC(FILE *, fclose);
 
+#define fprint_num(f, val) _Generic((val),              \
+    int: fprintf_int,                                   \
+    long long: fprintf_long_long,                       \
+    unsigned long: fprintf_unsigned_long,               \
+    unsigned long long: fprintf_unsigned_long_long      \
+)(f, val)
+
+static void fprintf_int(FILE *f, int val)
+{
+    fprintf(f, "%d", val);
+}
+
+static void fprintf_long_long(FILE *f, long long val)
+{
+    fprintf(f, "%lld", val);
+}
+
+static void fprintf_unsigned_long(FILE *f, unsigned long val)
+{
+    fprintf(f, "%lu", val);
+}
+
+static void fprintf_unsigned_long_long(FILE *f, unsigned long long val)
+{
+    fprintf(f, "%llu", val);
+}
+
+#define assert_eq(a, b)                                             \
+    ({                                                              \
+        typeof(a) _a = (a);                                         \
+        typeof(b) _b = (b);                                         \
+        if (_a != _b) {                                             \
+            fprintf(stderr, "Assert `" #a " == " #b "` failed:");   \
+            fprintf(stderr, "\n  " #a " = ");                       \
+            fprint_num(stderr, _a);                                 \
+            fprintf(stderr, "\n  " #b " = ");                       \
+            fprint_num(stderr, _b);                                 \
+            fprintf(stderr, "\n");                                  \
+            abort();                                                \
+        }                                                           \
+    })
+
 static void assert_strequal(const char *actual, const char *expected)
 {
     if (strcmp(actual, expected) != 0) {
         fprintf(stderr, "Expected:\n%s\n", expected);
         fprintf(stderr, "Got:\n%s\n", actual);
+        abort();
+    }
+}
+
+static void assert_memequal(const uint8_t *actual, size_t actual_len,
+                            const uint8_t *expected, size_t expected_len)
+{
+    bool fail = false;
+
+    if (actual_len != expected_len) {
+        fprintf(stderr, "Expected len = %zu, got %zu\n",
+                expected_len, actual_len);
+        fail = true;
+    }
+    if (memcmp(actual, expected, actual_len) != 0)
+        fail = true;
+
+    if (fail) {
+        set_use_color(false);
+        fprintf(stderr, "Expected:\n");
+        print_hex(expected, expected_len, 0);
+        fprintf(stderr, "Got:\n");
+        print_hex(actual, actual_len, 0);
         abort();
     }
 }
@@ -38,7 +105,7 @@ static void test_32bit_clean_pattern(void)
         .off_max = 0,
         .off_step = 1,
     });
-    assert(pattern->len == 4);
+    assert_eq(pattern->len, 4);
 }
 
 static void test_32bit_varying_pattern(void)
@@ -58,7 +125,101 @@ static void test_32bit_varying_pattern(void)
         .off_max = 0,
         .off_step = 1,
     });
-    assert(pattern->len == 4);
+    assert_eq(pattern->len, 4);
+}
+
+static void test_popcount(void)
+{
+    static const uint8_t buf1[] = {0x00, 0x00, 0x00, 0x00};
+    assert_eq(popcount_buf8(buf1, sizeof(buf1)), 0);
+
+    static const uint8_t buf2[] = {0x80, 0x00, 0x00, 0x00};
+    assert_eq(popcount_buf8(buf2, sizeof(buf2)), 1);
+
+    static const uint8_t buf3[] = {0x88, 0xff};
+    assert_eq(popcount_buf8(buf3, sizeof(buf3)), 10);
+}
+
+static void test_short_generated_pattern(void)
+{
+    size_t buf_len = 4096;
+    uint8_t fill_byte = 0x00;
+    size_t header_len = 0;
+    size_t pattern_len = 64;
+    unsigned int blips_count = 8;
+    _autofree void *buf = NULL;
+    _cleanup(pattern_free) struct pattern *pattern = NULL;
+
+    assert((buf = malloc(buf_len)));
+    srand48(0);
+    generate_pattern(buf, buf_len, fill_byte, header_len, pattern_len, blips_count);
+
+    static const uint8_t expected_mask[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2e, 0x00, 0xfe,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xbf, 0x00, 0x00, 0xf9,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x3d, 0x67, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x37, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+    };
+    static const uint8_t expected_pattern[] = {
+        0x62, 0x46, 0x20, 0x24, 0x86, 0x00, 0xea, 0x2e, 0x0d, 0x8f, 0x44, 0x8d,
+        0x91, 0x00, 0x19, 0x00, 0x30, 0x00, 0x00, 0x00, 0x8b, 0x75, 0xd7, 0x3a,
+        0x00, 0xdc, 0x00, 0x00, 0x59, 0x00, 0x00, 0x3b, 0xde, 0xc5, 0x7a, 0x34,
+        0x00, 0xb9, 0x69, 0x00, 0x00, 0x22, 0x29, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0xee, 0x00, 0x00, 0x4f, 0x1e, 0x00, 0x00, 0x00, 0x00,
+        0xb8, 0x00, 0x00, 0x66,
+    };
+    const off_t expected_off = 0x44;
+
+    /* Check that generated pattern is okay first */
+    assert_memequal(buf + expected_off, pattern_len,
+                    expected_pattern, pattern_len);
+
+    pattern = pattern_find(buf, buf_len, &(struct pattern_search_params){
+        .size_min = 4,
+        .size_max = 128,
+        .size_step = 4,
+        .off_min = 0,
+        .off_max = 128,
+        .off_step = 4,
+    });
+
+    assert_memequal(pattern->mask + pattern->off, pattern->len,
+                    expected_mask, pattern_len);
+    assert_eq(popcount_buf8(pattern->mask, pattern->len), 26);
+
+    assert_memequal(buf + pattern->off, pattern->len,
+                    expected_pattern, pattern_len);
+
+    assert_eq(pattern->off, expected_off);
+}
+
+static void test_long_generated_pattern(void)
+{
+    size_t buf_len = 4096;
+    uint8_t fill_byte = 0x00;
+    size_t header_len = 14;
+    size_t pattern_len = 129;
+    unsigned int blips_count = 12;
+    _autofree void *buf = NULL;
+    _cleanup(pattern_free) struct pattern *pattern = NULL;
+
+    assert((buf = malloc(buf_len)));
+    srand48(0);
+    generate_pattern(buf, buf_len, fill_byte, header_len, pattern_len, blips_count);
+
+    pattern = pattern_find(buf, buf_len, &(struct pattern_search_params){
+        .size_min = 16,
+        .size_max = 200,
+        .size_step = 1,
+        .off_min = 0,
+        .off_max = 100,
+        .off_step = 1,
+    });
+    assert(pattern->len == pattern_len);
+    assert_eq(pattern->off, 0x51);
+    assert_eq(popcount_buf8(pattern->mask, pattern->len), 48);
 }
 
 static void test_output_aligned(void)
@@ -177,6 +338,9 @@ int main(void)
 {
     RUN(test_32bit_clean_pattern);
     RUN(test_32bit_varying_pattern);
+    RUN(test_popcount);
+    RUN(test_short_generated_pattern);
+    RUN(test_long_generated_pattern);
     RUN(test_output_aligned);
     RUN(test_output_unaligned_multiline);
     RUN(test_output_unaligned_singleline);
