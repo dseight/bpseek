@@ -81,9 +81,9 @@ static void assert_memequal(const uint8_t *actual, size_t actual_len,
     if (fail) {
         set_use_color(false);
         fprintf(stderr, "Expected:\n");
-        print_hex(expected, expected_len, 0);
+        fprint_hex(stderr, expected, expected_len, 0);
         fprintf(stderr, "Got:\n");
-        print_hex(actual, actual_len, 0);
+        fprint_hex(stderr, actual, actual_len, 0);
         abort();
     }
 }
