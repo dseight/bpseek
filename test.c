@@ -16,6 +16,7 @@ DEFINE_PTR_CLEANUP_FUNC(FILE *, fclose);
 
 #define fprint_num(f, val) _Generic((val),              \
     int: fprintf_int,                                   \
+    long int: fprintf_long_int,                         \
     long long: fprintf_long_long,                       \
     unsigned long: fprintf_unsigned_long,               \
     unsigned long long: fprintf_unsigned_long_long      \
@@ -24,6 +25,11 @@ DEFINE_PTR_CLEANUP_FUNC(FILE *, fclose);
 static void fprintf_int(FILE *f, int val)
 {
     fprintf(f, "%d", val);
+}
+
+static void fprintf_long_int(FILE *f, long int val)
+{
+    fprintf(f, "%ld", val);
 }
 
 static void fprintf_long_long(FILE *f, long long val)
