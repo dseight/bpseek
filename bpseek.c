@@ -28,10 +28,10 @@ static void usage(void)
         "Options:\n"
         "  --size-min MIN, -m MIN        min size of pattern to search (default: 4)\n"
         "  --size-max MAX, -x MAX        max size of pattern to search (default: 4096)\n"
-        "  --size-step STEP, -s STEP     step between patterns to search (default: 4)\n"
+        "  --size-step STEP, -s STEP     step between patterns to search (default: 1)\n"
         "  --offset-min MIN, -M MIN      min offset to search from (default: 0)\n"
         "  --offset-max MAX, -X MAX      max offset to search from (default: 4096)\n"
-        "  --offset-step STEP, -S STEP   step between offsets (default: 4)\n"
+        "  --offset-step STEP, -S STEP   step between offsets (default: 1)\n"
         "  --color COLOR                 auto, always, never (default: auto)\n"
         "  --style STYLE                 unicode, ascii, none (default: unicode)\n"
         "  --ff, -f                      treat 0xff as \"empty\" data instead of 0x00\n"
@@ -61,10 +61,10 @@ int main(int argc, char *argv[])
     struct pattern_search_params params = {
         .size_min = 4,
         .size_max = 4096,
-        .size_step = 4,
+        .size_step = 1,
         .off_min = 0,
         .off_max = 4096,
-        .off_step = 4,
+        .off_step = 1,
     };
     enum Style style = StyleUnicode;
     void *data;
