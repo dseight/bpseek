@@ -138,6 +138,11 @@ static void test_popcount(void)
 
     static const uint8_t buf3[] = {0x88, 0xff};
     assert_eq(popcount_buf8(buf3, sizeof(buf3)), 10);
+
+    static const uint8_t buf4[] = {
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01
+    };
+    assert_eq(popcount_buf(buf4, sizeof(buf4)), 2);
 }
 
 static void test_short_generated_pattern(void)
