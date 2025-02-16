@@ -408,15 +408,15 @@ static int run_test(void (*fn)(void))
 
 int main(void)
 {
-    RUN(test_32bit_clean_pattern);
-    RUN(test_32bit_varying_pattern);
-    RUN(test_popcount);
-    RUN(test_xor_bufs);
-    RUN(test_xor_bufs_unaligned);
-    RUN(test_short_generated_pattern);
-    RUN(test_long_generated_pattern);
     RUN(test_output_aligned);
     RUN(test_output_unaligned_multiline);
     RUN(test_output_unaligned_singleline);
+    RUN(test_popcount);
+    RUN(test_xor_bufs);
+    RUN(test_xor_bufs_unaligned);
+    RUN(test_32bit_clean_pattern);
+    RUN(test_32bit_varying_pattern);
+    RUN(test_short_generated_pattern);
+    RUN(test_long_generated_pattern);
     return has_failures;
 }
