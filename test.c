@@ -145,6 +145,73 @@ static void test_popcount(void)
     assert_eq(popcount_buf(buf4, sizeof(buf4)), 2);
 }
 
+static void test_xor_bufs(void)
+{
+    static const uint8_t buf1[] = {
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
+    static const uint8_t buf2[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10
+    };
+    static const uint8_t acc_init[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
+    static const uint8_t expected_acc[] = {
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10
+    };
+    _autofree uint8_t *acc = NULL;
+    size_t len = sizeof(expected_acc);
+
+    acc = malloc(len);
+
+    memcpy(acc, acc_init, len);
+    accumulate_xor_bufs8(buf1, buf2, len, acc);
+    assert_memequal(acc, len, expected_acc, len);
+
+    memcpy(acc, acc_init, len);
+    accumulate_xor_bufs(buf1, buf2, len, acc);
+    assert_memequal(acc, len, expected_acc, len);
+}
+
+static void test_xor_bufs_unaligned(void)
+{
+    static const uint8_t buf1_init[] = {
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa0, 0x00, 0x0f
+    };
+    static const uint8_t buf2_init[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x0a, 0x00, 0xf0
+    };
+    static const uint8_t acc_init[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
+    static const uint8_t expected_acc[] = {
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0xaa, 0x00, 0xff
+    };
+    static const off_t off = 3;
+
+    _autofree void *_buf1 = NULL;
+    _autofree void *_buf2 = NULL;
+    _autofree void *_acc = NULL;
+    size_t len = sizeof(expected_acc);
+
+    /* Allocate aligned buffers, so they can be easily misaligned */
+    assert(posix_memalign(&_buf1, 8, 2 * len) == 0);
+    assert(posix_memalign(&_buf2, 8, 2 * len) == 0);
+    assert(posix_memalign(&_acc, 8, 2 * len) == 0);
+
+    /* Make buffers misaligned */
+    uint8_t *buf1 = _buf1 + off;
+    uint8_t *buf2 = _buf2 + off;
+    uint8_t *acc = _acc + off;
+
+    memcpy(buf1, buf1_init, len);
+    memcpy(buf2, buf2_init, len);
+    memcpy(acc, acc_init, len);
+
+    accumulate_xor_bufs(buf1, buf2, len, acc);
+    assert_memequal(acc, len, expected_acc, len);
+}
+
 static void test_short_generated_pattern(void)
 {
     size_t buf_len = 4096;
@@ -344,6 +411,8 @@ int main(void)
     RUN(test_32bit_clean_pattern);
     RUN(test_32bit_varying_pattern);
     RUN(test_popcount);
+    RUN(test_xor_bufs);
+    RUN(test_xor_bufs_unaligned);
     RUN(test_short_generated_pattern);
     RUN(test_long_generated_pattern);
     RUN(test_output_aligned);
